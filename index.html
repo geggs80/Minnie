@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Har du funnet meg?</title>
+<meta name="theme-color" content="#1b4332">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐾</text></svg>">
+
+<!-- =====================================================================
+     FYLL UT DENNE BLOKKA – ingenting annet trenger å endres.
+     ===================================================================== -->
+<script>
+const CONFIG = {
+  hund: {
+    navn:   "Minnie",
+    rase:   "Fransk Bulldog",
+    fodt:   "2018",                // "ÅÅÅÅ-MM-DD" for eksakt alder, eller bare "ÅÅÅÅ".
+                                   // Alderen regnes ut ved hvert besøk – blir aldri utdatert.
+    kjonn:  "Tispe",
+    chip:   "578098100123456",     // microchip-nummer, tom streng = skjules
+    bilde:  "hund.jpg"             // legg bildet i samme mappe
+  },
+
+  eier: {
+    navn:     "Geir Rode",
+    telefon:  "+4792637689",       // MÅ ha landkode, brukes i ring-knappen
+    telefon2: "",                  // valgfritt reservenummer
+    omrade:   "Figgjo, Sandnes"  // grovt område – ikke full gateadresse
+  },
+
+  // Valgfritt – la stå tomt for å skjule
+  vet: { navn: "", telefon: "" },
+  notat: "",
+
+  varsling: {
+    telegram: { token: "", chatId: "" },   // se SETUP.md
+    epost:    { web3formsKey: "", til: "geir.rode@gmail.com" },
+    cooldownMinutter: 10                   // hindrer spam ved refresh
+  }
+};
+</script>
+<!-- ===================== SLUTT PÅ KONFIGURASJON ======================== -->
+
+<style>
+  :root{
+    --gronn:#1b4332; --gronn-lys:#2d6a4f; --aksent:#f4a261;
+    --bg:#f7f4ef; --kort:#ffffff; --tekst:#22271f; --dempet:#6b7280;
+    --skygge:0 2px 10px rgba(27,67,50,.08), 0 8px 30px rgba(27,67,50,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    background:var(--bg); color:var(--tekst); line-height:1.5;
+    padding:0 0 env(safe-area-inset-bottom);
+  }
+  .wrap{max-width:520px;margin:0 auto;padding:0 18px 40px}
+
+  header{
+    background:linear-gradient(160deg,var(--gronn) 0%,var(--gronn-lys) 100%);
+    color:#fff;text-align:center;
+    padding:34px 18px 78px;
+    border-radius:0 0 28px 28px;
+  }
+  header .kicker{
+    font-size:13px;letter-spacing:.14em;text-transform:uppercase;
+    opacity:.8;margin:0 0 6px
+  }
+  header h1{margin:0;font-size:27px;font-weight:700;letter-spacing:-.02em}
+
+  .foto{
+    width:150px;height:150px;border-radius:50%;object-fit:cover;
+    border:5px solid #fff;box-shadow:var(--skygge);
+    margin:-75px auto 14px;display:block;background:#e5e0d8;
+  }
+  .foto-fallback{
+    display:flex;align-items:center;justify-content:center;font-size:66px;
+  }
+
+  .navn{text-align:center;font-size:34px;font-weight:800;margin:0;letter-spacing:-.02em}
+  .undertittel{text-align:center;color:var(--dempet);margin:4px 0 22px;font-size:15px}
+
+  .knapp{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    width:100%;padding:17px 20px;margin-bottom:11px;
+    border:none;border-radius:15px;font-size:17px;font-weight:650;
+    font-family:inherit;text-decoration:none;cursor:pointer;
+    transition:transform .12s ease, filter .12s ease;
+  }
+  .knapp:active{transform:scale(.98);filter:brightness(.95)}
+  .knapp.primar{background:var(--gronn);color:#fff;box-shadow:var(--skygge)}
+  .knapp.sekundar{background:var(--kort);color:var(--gronn);border:2px solid #dfe5df}
+  .knapp svg{width:21px;height:21px;flex:none}
+
+  .kort{
+    background:var(--kort);border-radius:17px;padding:6px 18px;
+    box-shadow:var(--skygge);margin:22px 0;
+  }
+  .rad{display:flex;justify-content:space-between;gap:16px;padding:13px 0;border-bottom:1px solid #f0eeea}
+  .rad:last-child{border-bottom:none}
+  .rad dt{color:var(--dempet);font-size:14px;margin:0}
+  .rad dd{margin:0;font-weight:600;text-align:right;font-size:15px}
+  .rad dd a{color:var(--gronn)}
+
+  .notat{
+    background:#fff8ed;border-left:4px solid var(--aksent);
+    border-radius:0 12px 12px 0;padding:13px 16px;margin:20px 0;font-size:15px;
+  }
+
+  .status{
+    display:flex;align-items:center;gap:9px;
+    font-size:13.5px;color:var(--dempet);
+    background:#eef2ee;border-radius:12px;padding:12px 15px;margin:20px 0 0;
+  }
+  .prikk{width:9px;height:9px;border-radius:50%;background:#c3c9c3;flex:none}
+  .prikk.pa{background:#40916c;animation:puls 2s infinite}
+  .prikk.feil{background:#bc4749}
+  @keyframes puls{0%,100%{opacity:1}50%{opacity:.35}}
+
+  footer{text-align:center;color:var(--dempet);font-size:12.5px;margin-top:26px;line-height:1.6}
+  .skjult{display:none !important}
+</style>
+</head>
+
+<body>
+
+<header>
+  <p class="kicker">Har du funnet meg?</p>
+  <h1>Takk! Ring eieren min 🐾</h1>
+</header>
+
+<div class="wrap">
+  <img id="foto" class="foto" alt="">
+  <h2 class="navn" id="navn"></h2>
+  <p class="undertittel" id="undertittel"></p>
+
+  <a class="knapp primar" id="ringKnapp">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+    <span id="ringTekst">Ring eier</span>
+  </a>
+
+  <a class="knapp sekundar skjult" id="ringKnapp2"></a>
+
+  <button class="knapp sekundar" id="posKnapp">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+    <span id="posTekst">Send posisjonen min på SMS</span>
+  </button>
+
+  <dl class="kort" id="infoKort"></dl>
+
+  <div class="notat skjult" id="notat"></div>
+
+  <div class="status">
+    <span class="prikk" id="prikk"></span>
+    <span id="statusTekst">Varsler eieren om at du har funnet meg …</span>
+  </div>
+
+  <footer>
+    Jeg er ID-merket med microchip og registrert hos eier.<br>
+    Kommer du ikke gjennom, kontakt nærmeste veterinær eller politiet.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var C = CONFIG, H = C.hund, E = C.eier;
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  };
+
+  /* ---------- 1. Render innhold ---------- */
+
+  document.title = "Har du funnet " + H.navn + "?";
+  $("navn").textContent = H.navn;
+
+  /* Alder regnes ut fra fødselsdato, så teksten aldri blir feil.
+     Godtar "2018" og "2018-03-15". Valpealder vises i måneder. */
+  function beregnAlder(fodt) {
+    if (!fodt) return "";
+    var m = String(fodt).trim().match(/^(\d{4})(?:-(\d{1,2}))?(?:-(\d{1,2}))?$/);
+    if (!m) return "";
+
+    var ar = +m[1], mnd = m[2] ? +m[2] : null, dag = m[3] ? +m[3] : null;
+    var kunAr = mnd === null;
+    var f  = new Date(ar, (mnd || 1) - 1, dag || 1);
+    var na = new Date();
+    if (isNaN(f) || f > na) return "";
+
+    var mnder = (na.getFullYear() - f.getFullYear()) * 12 + (na.getMonth() - f.getMonth());
+    if (dag && na.getDate() < dag) mnder--;
+    if (mnder < 0) return "";
+
+    if (mnder < 24 && !kunAr) {
+      return mnder <= 1 ? "under 1 måned" : mnder + " måneder";
+    }
+    var arGammel = Math.floor(mnder / 12);
+    var tekst = arGammel + (arGammel === 1 ? " år" : " år");
+    return kunAr ? "ca. " + tekst : tekst;   // kun årstall = omtrentlig
+  }
+
+  var detaljer = [H.rase, beregnAlder(H.fodt), H.kjonn].filter(Boolean).join(" · ");
+  $("undertittel").textContent = detaljer;
+
+  var foto = $("foto");
+  foto.alt = H.navn;
+  foto.src = H.bilde || "";
+  foto.onerror = function () {
+    var d = document.createElement("div");
+    d.className = "foto foto-fallback";
+    d.textContent = "🐕";
+    foto.replaceWith(d);
+  };
+
+  var tlf = (E.telefon || "").replace(/\s/g, "");
+  $("ringKnapp").href = "tel:" + tlf;
+  $("ringTekst").textContent = "Ring " + (E.navn.split(" ")[0] || "eier") + " – " + E.telefon;
+
+  if (E.telefon2) {
+    var k2 = $("ringKnapp2");
+    k2.href = "tel:" + E.telefon2.replace(/\s/g, "");
+    k2.textContent = "Reservenummer: " + E.telefon2;
+    k2.classList.remove("skjult");
+  }
+
+  var rader = [
+    ["Eier",        esc(E.navn)],
+    ["Hjemme i",    esc(E.omrade)],
+    ["Chipnummer",  H.chip ? esc(H.chip) : ""],
+    ["Veterinær",   C.vet.navn ? esc(C.vet.navn) +
+                    (C.vet.telefon ? ' <a href="tel:' + esc(C.vet.telefon.replace(/\s/g, "")) +
+                    '">' + esc(C.vet.telefon) + "</a>" : "") : ""]
+  ];
+  $("infoKort").innerHTML = rader
+    .filter(function (r) { return r[1]; })
+    .map(function (r) {
+      return '<div class="rad"><dt>' + r[0] + "</dt><dd>" + r[1] + "</dd></div>";
+    }).join("");
+
+  if (C.notat) {
+    $("notat").textContent = C.notat;
+    $("notat").classList.remove("skjult");
+  }
+
+  /* ---------- 2. Kontekst om skanningen ---------- */
+
+  var params    = new URLSearchParams(location.search);
+  var taggId    = params.get("u") || params.get("uid") || params.get("tag") || "";
+  var tidspunkt = new Date().toLocaleString("no-NO", {
+    dateStyle: "full", timeStyle: "short", timeZone: "Europe/Oslo"
+  });
+
+  function status(tekst, tilstand) {
+    $("statusTekst").textContent = tekst;
+    $("prikk").className = "prikk" + (tilstand ? " " + tilstand : "");
+  }
+
+  /* ---------- 3. Varsling ---------- */
+
+  var COOLDOWN = (C.varsling.cooldownMinutter || 10) * 60 * 1000;
+
+  function nyligVarslet() {
+    try {
+      var sist = parseInt(localStorage.getItem("sistVarsel") || "0", 10);
+      return Date.now() - sist < COOLDOWN;
+    } catch (e) { return false; }
+  }
+  function merkVarslet() {
+    try { localStorage.setItem("sistVarsel", String(Date.now())); } catch (e) {}
+  }
+
+  function byggMelding(pos) {
+    var linjer = [
+      "🐾 " + H.navn + "-taggen ble skannet",
+      "",
+      "🕐 " + tidspunkt
+    ];
+    if (pos) {
+      var lat = pos.coords.latitude.toFixed(6);
+      var lon = pos.coords.longitude.toFixed(6);
+      linjer.push("📍 https://maps.google.com/?q=" + lat + "," + lon);
+      linjer.push("   " + lat + ", " + lon + "  (±" + Math.round(pos.coords.accuracy) + " m)");
+    } else {
+      linjer.push("📍 Posisjon ikke delt av finneren");
+    }
+    if (taggId) linjer.push("🏷️ Tagg: " + taggId);
+    linjer.push("📱 " + navigator.userAgent.slice(0, 110));
+    return linjer.join("\n");
+  }
+
+  function sendTelegram(tekst) {
+    var t = C.varsling.telegram;
+    if (!t.token || !t.chatId) return Promise.reject("telegram ikke satt opp");
+    return fetch("https://api.telegram.org/bot" + t.token + "/sendMessage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: t.chatId,
+        text: tekst,
+        disable_web_page_preview: false
+      })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("telegram " + r.status);
+      return r;
+    });
+  }
+
+  function sendEpost(tekst) {
+    var e = C.varsling.epost;
+    if (!e.web3formsKey) return Promise.reject("e-post ikke satt opp");
+    return fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: e.web3formsKey,
+        subject: "🐾 " + H.navn + "-taggen ble nettopp skannet",
+        from_name: H.navn + "-taggen",
+        melding: tekst
+      })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("web3forms " + r.status);
+      return r;
+    });
+  }
+
+  function varsle(pos, tvungen) {
+    if (!tvungen && nyligVarslet()) {
+      status("Eieren er allerede varslet. Ring gjerne nummeret over.", "pa");
+      return;
+    }
+    merkVarslet();
+    var tekst = byggMelding(pos);
+
+    var forsok = [sendTelegram(tekst), sendEpost(tekst)];
+    // Vent til begge er avgjort – ett vellykket varsel er nok.
+    Promise.allSettled(forsok).then(function (res) {
+      var ok = res.some(function (r) { return r.status === "fulfilled"; });
+      if (ok) {
+        status(
+          pos ? "Eieren er varslet med posisjonen din. Takk! 💚"
+              : "Eieren er varslet om at du fant meg. Takk! 💚",
+          "pa"
+        );
+      } else {
+        status("Fikk ikke varslet eieren automatisk – ring nummeret over.", "feil");
+      }
+    });
+  }
+
+  /* Hent posisjon først, varsle så – ett samlet varsel. */
+  function start() {
+    if (nyligVarslet()) {
+      status("Eieren er allerede varslet. Ring gjerne nummeret over.", "pa");
+      return;
+    }
+    if (!navigator.geolocation) {
+      varsle(null, false);
+      return;
+    }
+    var ferdig = false;
+    var reserve = setTimeout(function () {
+      if (!ferdig) { ferdig = true; varsle(null, false); }
+    }, 12000);
+
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        if (ferdig) return;
+        ferdig = true; clearTimeout(reserve); varsle(pos, false);
+      },
+      function () {
+        if (ferdig) return;
+        ferdig = true; clearTimeout(reserve); varsle(null, false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+    );
+  }
+
+  /* ---------- 4. SMS-knapp med posisjon ---------- */
+
+  $("posKnapp").addEventListener("click", function () {
+    var knapp = this;
+    $("posTekst").textContent = "Henter posisjon …";
+    knapp.disabled = true;
+
+    function sendSms(pos) {
+      var tekst = "Hei! Jeg har funnet " + H.navn + ".";
+      if (pos) {
+        tekst += " Jeg er her: https://maps.google.com/?q=" +
+                 pos.coords.latitude.toFixed(6) + "," + pos.coords.longitude.toFixed(6);
+      }
+      if (pos) varsle(pos, true);
+      $("posTekst").textContent = "Send posisjonen min på SMS";
+      knapp.disabled = false;
+      location.href = "sms:" + tlf + "?&body=" + encodeURIComponent(tekst);
+    }
+
+    if (!navigator.geolocation) { sendSms(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { sendSms(pos); },
+      function () { sendSms(null); },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  });
+
+  /* ---------- 5. I gang ---------- */
+  start();
+})();
+</script>
+</body>
+</html>
