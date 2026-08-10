@@ -16,7 +16,7 @@ const CONFIG = {
   hund: {
     navn:   "Minnie",
     rase:   "Fransk Bulldog",
-    fodt:   "2018-06-06",                // "ÅÅÅÅ-MM-DD" for eksakt alder, eller bare "ÅÅÅÅ".
+    fodt:   "2018-06-06",          // "ÅÅÅÅ-MM-DD" for eksakt alder, eller bare "ÅÅÅÅ".
                                    // Alderen regnes ut ved hvert besøk – blir aldri utdatert.
     kjonn:  "Tispe",
     chip:   "578098100123456",     // microchip-nummer, tom streng = skjules
@@ -35,7 +35,8 @@ const CONFIG = {
   notat: "",
 
   varsling: {
-    telegram: { token: "", chatId: "" },   // se SETUP.md
+    // Bot: @minnie_tag_bot – brukes KUN til denne taggen
+    telegram: { token: "8697176405:AAGa4omBGnNLoxGja9h0CZlOGZMPENnzj3Q", chatId: "782456409" },
     epost:    { web3formsKey: "", til: "geir.rode@gmail.com" },
     cooldownMinutter: 10                   // hindrer spam ved refresh
   }
